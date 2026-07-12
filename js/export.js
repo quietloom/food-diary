@@ -64,7 +64,7 @@ export function buildWorkbook(XLSX, { foods, logEntries }) {
 
   const maxLibRow = LIBRARY_FIRST_DATA_ROW + foods.length;
   const maxLogRow = LOG_FIRST_DATA_ROW + logEntries.length;
-  lib['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxLibRow, c: LIBRARY_HEADERS.length - 1 } });
+  lib['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxLibRow, c: Math.max(LIBRARY_HEADERS.length - 1, LIBRARY_NOTE_COL - 1) } });
   log['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxLogRow, c: LOG_HEADERS.length - 1 } });
 
   XLSX.utils.book_append_sheet(wb, lib, 'Food Library');
