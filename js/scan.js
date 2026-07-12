@@ -35,9 +35,15 @@ export async function startScanning(videoEl, onVerifiedBarcode, onProblem) {
         barcodes = await detector.detect(videoEl);
         barcodes = barcodes.map((b) => ({ text: b.rawValue }));
       } else {
-        const result = await window.zxingWasm.readBarcodesFromCanvas(videoEl);
+        const canvas = document.createElement('canvas');
+        canvas.width = videoEl.videoWidth;
+        canvas.height = videoEl.videoHeight;
+        canvas.getContext('2d').drawImage(videoEl, 0, 0);
+        const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+        const result = await window.ZXingWASM.readBarcodes(imageData);
         barcodes = result.map((r) => ({ text: r.text }));
       }
+      if (stopped) return;
       if (barcodes.length > 0) {
         const code = barcodes[0].text.trim();
         if (code !== seenLast) {
