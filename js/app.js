@@ -1,4 +1,3 @@
-import { checkDigitOk } from './checkdigit.js';
 import { openDb, upsertFoodByBarcode, addLogEntry, getAllFoods, getAllLogEntries, addPhoto } from './db.js';
 import { lookupProduct } from './lookup.js';
 import { buildWorkbook, downloadWorkbook } from './export.js';
@@ -27,10 +26,17 @@ async function main() {
   const screens = Array.from(document.querySelectorAll('.screen'));
   const confirmCard = document.getElementById('confirm-card');
 
+  // camera stream lifecycles — only one of these may be open at a time
+  let scanStop = null;
+  let photoStop = null;
+
   function showScreen(name) {
     screens.forEach((s) => s.classList.toggle('hidden', s.dataset.screen !== name));
     menu.classList.add('hidden');
     confirmCard.classList.add('hidden');
+    if (name !== 'scan' && scanStop) { scanStop(); scanStop = null; }
+    if (name !== 'photo' && photoStop) { photoStop(); photoStop = null; }
+    if (name === 'scan' && !scanStop) beginScan();
     if (name === 'library') renderLibrary();
     if (name === 'log') renderLog();
     if (name === 'export') renderExportSummary();
@@ -46,7 +52,7 @@ async function main() {
   // --- Confirm card -------------------------------------------------
   function openConfirmCard(food, { onLog }) {
     confirmCard.innerHTML = `
-      <strong>${food.name || '(name not found — Nutritics will resolve from the barcode)'}</strong> (${food.code})
+      <strong>${food.name || '(name not found — Nutritics will resolve from the barcode)'}</strong>${food.nameUnconfirmed ? ' <em>(unconfirmed name — verify against packet)</em>' : ''} (${food.code})
       <label>Meal</label>
       <select id="cc-meal">
         ${['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((m) => `<option ${m === inferMeal() ? 'selected' : ''}>${m}</option>`).join('')}
@@ -64,6 +70,7 @@ async function main() {
         meal: document.getElementById('cc-meal').value,
         quantity: parseFloat(document.getElementById('cc-qty').value) || null,
         unit: document.getElementById('cc-unit').value,
+        ...(food.nameUnconfirmed ? { notes: 'name unconfirmed — verify against packet' } : {}),
       });
       confirmCard.classList.add('hidden');
     });
@@ -87,20 +94,24 @@ async function main() {
 
   // --- Scan screen ----------------------------------------------------
   const scanStatus = document.getElementById('scan-status');
-  startScanning(
-    document.getElementById('viewfinder'),
-    async (barcode) => {
-      const looked = await lookupProduct(barcode).catch(() => ({ name: '', brand: '', packQty: null, packUnit: '', note: '' }));
-      const { code } = await upsertFoodByBarcode(db, {
-        barcode, name: looked.name, brand: looked.brand, packSize: looked.packQty, packUnit: looked.packUnit,
-      });
-      scanStatus.textContent = '';
-      openConfirmCard({ code, name: looked.name, packSize: looked.packQty, packUnit: looked.packUnit }, {
-        onLog: (details) => logEntry({ foodCode: code, ...details }),
-      });
-    },
-    (msg) => { scanStatus.textContent = msg; },
-  );
+  async function beginScan() {
+    scanStop = await startScanning(
+      document.getElementById('viewfinder'),
+      async (barcode) => {
+        const looked = await lookupProduct(barcode).catch(() => ({ name: '', brand: '', packQty: null, packUnit: '', note: '' }));
+        const { code } = await upsertFoodByBarcode(db, {
+          barcode, name: looked.name, brand: looked.brand, packSize: looked.packQty, packUnit: looked.packUnit,
+        });
+        const foods = await getAllFoods(db);
+        const nameUnconfirmed = foods.find((f) => f.code === code)?.nameUnconfirmed || false;
+        scanStatus.textContent = '';
+        openConfirmCard({ code, name: looked.name, packSize: looked.packQty, packUnit: looked.packUnit, nameUnconfirmed }, {
+          onLog: (details) => logEntry({ foodCode: code, ...details }),
+        });
+      },
+      (msg) => { scanStatus.textContent = msg; },
+    );
+  }
 
   // --- Library / Log screens ------------------------------------------
   async function renderLibrary() {
@@ -146,7 +157,6 @@ async function main() {
   }
 
   // --- No-barcode reference photo ---------------------------------------
-  let photoStop = null;
   document.querySelector('[data-nav="photo"]').addEventListener('click', async () => {
     const videoEl = document.getElementById('photo-viewfinder');
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
@@ -200,6 +210,8 @@ async function main() {
     }
     renderTiming();
   });
+
+  await beginScan();
 }
 
 main();
