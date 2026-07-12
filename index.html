@@ -33,6 +33,41 @@
     </nav>
 
     <div id="confirm-card" class="card hidden"></div>
+
+    <div id="screen-library" class="screen hidden" data-screen="library">
+      <header class="topbar"><button class="back-btn" data-nav="scan">&larr;</button><span class="title">Food Library</span></header>
+      <table class="list" id="library-table"><thead><tr><th>Code</th><th>Food</th><th>Barcode</th><th>Times used</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div id="screen-log" class="screen hidden" data-screen="log">
+      <header class="topbar"><button class="back-btn" data-nav="scan">&larr;</button><span class="title">Daily Log</span></header>
+      <table class="list" id="log-table"><thead><tr><th>Day</th><th>Meal</th><th>Food</th><th>Qty</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div id="screen-export" class="screen hidden" data-screen="export">
+      <header class="topbar"><button class="back-btn" data-nav="scan">&larr;</button><span class="title">Export</span></header>
+      <p id="export-summary"></p>
+      <button id="export-btn" class="mock-button">Download xlsx</button>
+    </div>
+
+    <div id="screen-timing" class="screen hidden" data-screen="timing">
+      <header class="topbar"><button class="back-btn" data-nav="scan">&larr;</button><span class="title">Timing</span></header>
+      <p id="timing-status">Not running</p>
+      <button id="timing-toggle">Start keying pass</button>
+      <p id="timing-summary"></p>
+    </div>
+
+    <div id="screen-quick-add" class="screen hidden" data-screen="quick-add">
+      <header class="topbar"><button class="back-btn" data-nav="scan">&larr;</button><span class="title">Quick-add</span></header>
+      <input id="quick-add-search" placeholder="Search foods you've already logged">
+      <table class="list" id="quick-add-table"><thead><tr><th>Food</th><th>Times used</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <div id="screen-photo" class="screen hidden" data-screen="photo">
+      <header class="topbar"><button class="back-btn" data-nav="scan">&larr;</button><span class="title">No barcode</span></header>
+      <video id="photo-viewfinder" autoplay playsinline muted></video>
+      <button id="photo-capture-btn">Take photo</button>
+    </div>
   </main>
 </body>
 </html>
