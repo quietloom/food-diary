@@ -171,10 +171,18 @@ async function main() {
   document.querySelector('[data-nav="photo"]').addEventListener('click', async () => {
     if (photoStop || photoStarting) return; // already open or already opening — no-op
     photoStarting = true;
+    document.getElementById('photo-status').textContent = '';
     const videoEl = document.getElementById('photo-viewfinder');
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-    videoEl.srcObject = stream;
-    await videoEl.play();
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      videoEl.srcObject = stream;
+      await videoEl.play();
+    } catch (err) {
+      photoStarting = false;
+      document.getElementById('photo-status').textContent = `Camera error: ${err.message || err}`;
+      return;
+    }
     photoStarting = false;
     const stop = () => stream.getTracks().forEach((t) => t.stop());
     // If the user navigated away from the photo screen while getUserMedia was pending,

@@ -29,9 +29,11 @@ self.addEventListener('activate', (event) => {
 
 // Cache-first for the app shell; anything else (e.g. the Open Food Facts
 // lookup, or the CDN-hosted SheetJS/zxing-wasm scripts) falls through to the
-// network and simply fails offline — matches the CLI's --no-lookup posture:
-// the app works fully offline, advisory lookups just don't happen without a
-// connection.
+// network and simply fails offline. Scanning + IndexedDB storage work
+// offline, but SheetJS (Export) and zxing-wasm (barcode scanning on browsers
+// without native BarcodeDetector, e.g. iOS Safari) are NOT in SHELL_FILES —
+// they load from CDN and need network at least once per session before those
+// features work offline.
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request)),
