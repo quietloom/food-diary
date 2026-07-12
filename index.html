@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Food diary capture</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+  <script type="module" src="js/app.js" defer></script>
+</head>
+<body>
+  <main id="app">
+    <div id="screen-scan" class="screen" data-screen="scan">
+      <header class="topbar">
+        <button id="menu-btn" aria-label="Menu">&#9776;</button>
+        <span class="title">Food diary</span>
+        <span class="spacer"></span>
+      </header>
+      <video id="viewfinder" autoplay playsinline muted></video>
+      <p id="scan-status" class="status"></p>
+    </div>
+
+    <nav id="menu" class="menu hidden">
+      <button data-nav="quick-add">Quick-add</button>
+      <button data-nav="photo">No barcode (photo)</button>
+      <button data-nav="library">Library</button>
+      <button data-nav="log">Daily Log</button>
+      <button data-nav="export">Export</button>
+      <button data-nav="timing">Timing</button>
+      <button data-nav="scan">Close menu</button>
+    </nav>
+
+    <div id="confirm-card" class="card hidden"></div>
+  </main>
+</body>
+</html>
