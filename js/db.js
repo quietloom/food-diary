@@ -60,7 +60,7 @@ export async function upsertFoodByBarcode(db, { barcode, name = '', brand = '', 
   const all = await reqToPromise(store.getAll());
   const existing = all.find((f) => f.barcode === barcode);
   if (existing) {
-    return { code: existing.code, isNew: false };
+    return { code: existing.code, isNew: false, nameUnconfirmed: existing.nameUnconfirmed };
   }
   const code = nextCode(all.map((f) => f.code));
   const row = {
@@ -70,7 +70,7 @@ export async function upsertFoodByBarcode(db, { barcode, name = '', brand = '', 
     createdAt: Date.now(),
   };
   await reqToPromise(store.add(row));
-  return { code, isNew: true };
+  return { code, isNew: true, nameUnconfirmed: row.nameUnconfirmed };
 }
 
 export async function getAllFoods(db) {

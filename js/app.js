@@ -29,14 +29,17 @@ async function main() {
   // camera stream lifecycles — only one of these may be open at a time
   let scanStop = null;
   let photoStop = null;
+  let scanStarting = false; // true while getUserMedia is pending, to block re-entrant beginScan() calls
+  let currentScreen = 'scan'; // matches index.html's default-visible screen (showScreen() is never called before the initial beginScan())
 
   function showScreen(name) {
+    currentScreen = name;
     screens.forEach((s) => s.classList.toggle('hidden', s.dataset.screen !== name));
     menu.classList.add('hidden');
     confirmCard.classList.add('hidden');
     if (name !== 'scan' && scanStop) { scanStop(); scanStop = null; }
     if (name !== 'photo' && photoStop) { photoStop(); photoStop = null; }
-    if (name === 'scan' && !scanStop) beginScan();
+    if (name === 'scan' && !scanStop && !scanStarting) beginScan();
     if (name === 'library') renderLibrary();
     if (name === 'log') renderLog();
     if (name === 'export') renderExportSummary();
@@ -95,15 +98,14 @@ async function main() {
   // --- Scan screen ----------------------------------------------------
   const scanStatus = document.getElementById('scan-status');
   async function beginScan() {
-    scanStop = await startScanning(
+    scanStarting = true;
+    const stop = await startScanning(
       document.getElementById('viewfinder'),
       async (barcode) => {
         const looked = await lookupProduct(barcode).catch(() => ({ name: '', brand: '', packQty: null, packUnit: '', note: '' }));
-        const { code } = await upsertFoodByBarcode(db, {
+        const { code, nameUnconfirmed } = await upsertFoodByBarcode(db, {
           barcode, name: looked.name, brand: looked.brand, packSize: looked.packQty, packUnit: looked.packUnit,
         });
-        const foods = await getAllFoods(db);
-        const nameUnconfirmed = foods.find((f) => f.code === code)?.nameUnconfirmed || false;
         scanStatus.textContent = '';
         openConfirmCard({ code, name: looked.name, packSize: looked.packQty, packUnit: looked.packUnit, nameUnconfirmed }, {
           onLog: (details) => logEntry({ foodCode: code, ...details }),
@@ -111,6 +113,14 @@ async function main() {
       },
       (msg) => { scanStatus.textContent = msg; },
     );
+    scanStarting = false;
+    // If the user navigated away from the scan screen while getUserMedia was pending,
+    // don't leave this stream open behind them — stop it immediately instead of assigning scanStop.
+    if (currentScreen !== 'scan') {
+      stop();
+      return;
+    }
+    scanStop = stop;
   }
 
   // --- Library / Log screens ------------------------------------------
@@ -128,7 +138,7 @@ async function main() {
     const foods = await getAllFoods(db);
     const byCode = Object.fromEntries(foods.map((f) => [f.code, f]));
     const tbody = document.querySelector('#log-table tbody');
-    tbody.innerHTML = logEntries.map((e) => `<tr><td>${e.day}</td><td>${e.meal}</td><td>${byCode[e.foodCode]?.name || e.foodCode}</td><td>${e.quantity ?? ''}${e.unit ?? ''}</td></tr>`).join('');
+    tbody.innerHTML = logEntries.map((e) => `<tr><td>${e.day}</td><td>${e.meal}</td><td>${byCode[e.foodCode]?.name || e.foodCode}${byCode[e.foodCode]?.nameUnconfirmed ? ' <em>UNCONFIRMED</em>' : ''}</td><td>${e.quantity ?? ''}${e.unit ?? ''}</td></tr>`).join('');
   }
 
   // --- Quick-add --------------------------------------------------------
