@@ -69,5 +69,10 @@
       <button id="photo-capture-btn">Take photo</button>
     </div>
   </main>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+    }
+  </script>
 </body>
 </html>
