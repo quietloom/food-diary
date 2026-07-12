@@ -30,6 +30,7 @@ async function main() {
   let scanStop = null;
   let photoStop = null;
   let scanStarting = false; // true while getUserMedia is pending, to block re-entrant beginScan() calls
+  let photoStarting = false; // true while getUserMedia is pending, to block re-entrant photo-stream opens
   let currentScreen = 'scan'; // matches index.html's default-visible screen (showScreen() is never called before the initial beginScan())
 
   function showScreen(name) {
@@ -150,7 +151,7 @@ async function main() {
     const sorted = [...foods].sort((a, b) => (counts[b.code] || 0) - (counts[a.code] || 0));
     const tbody = document.querySelector('#quick-add-table tbody');
     function draw(list) {
-      tbody.innerHTML = list.map((f) => `<tr data-code="${f.code}"><td>${f.name || f.code}</td><td>${counts[f.code] || 0}</td></tr>`).join('');
+      tbody.innerHTML = list.map((f) => `<tr data-code="${f.code}"><td>${f.name || f.code}${f.nameUnconfirmed ? ' <em>UNCONFIRMED</em>' : ''}</td><td>${counts[f.code] || 0}</td></tr>`).join('');
       tbody.querySelectorAll('tr').forEach((tr) => {
         tr.addEventListener('click', () => {
           const food = sorted.find((f) => f.code === tr.dataset.code);
@@ -168,11 +169,21 @@ async function main() {
 
   // --- No-barcode reference photo ---------------------------------------
   document.querySelector('[data-nav="photo"]').addEventListener('click', async () => {
+    if (photoStop || photoStarting) return; // already open or already opening — no-op
+    photoStarting = true;
     const videoEl = document.getElementById('photo-viewfinder');
     const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
     videoEl.srcObject = stream;
     await videoEl.play();
-    photoStop = () => stream.getTracks().forEach((t) => t.stop());
+    photoStarting = false;
+    const stop = () => stream.getTracks().forEach((t) => t.stop());
+    // If the user navigated away from the photo screen while getUserMedia was pending,
+    // don't leave this stream open behind them — stop it immediately instead of assigning photoStop.
+    if (currentScreen !== 'photo') {
+      stop();
+      return;
+    }
+    photoStop = stop;
   });
   document.getElementById('photo-capture-btn').addEventListener('click', async () => {
     const videoEl = document.getElementById('photo-viewfinder');
