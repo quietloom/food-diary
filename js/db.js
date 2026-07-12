@@ -89,14 +89,14 @@ export async function addPhoto(db, blob) {
   return reqToPromise(tx(db, STORE_PHOTOS, 'readwrite').add({ blob, createdAt: Date.now() }));
 }
 
-export async function startSession(db) {
-  return reqToPromise(tx(db, STORE_SESSIONS, 'readwrite').add({ startedAt: Date.now(), endedAt: null, entriesLogged: null }));
+export async function startSession(db, now = Date.now) {
+  return reqToPromise(tx(db, STORE_SESSIONS, 'readwrite').add({ startedAt: now(), endedAt: null, entriesLogged: null }));
 }
 
-export async function endSession(db, sessionId, entriesLogged) {
+export async function endSession(db, sessionId, entriesLogged, now = Date.now) {
   const store = tx(db, STORE_SESSIONS, 'readwrite');
   const row = await reqToPromise(store.get(sessionId));
-  row.endedAt = Date.now();
+  row.endedAt = now();
   row.entriesLogged = entriesLogged;
   await reqToPromise(store.put(row));
 }
