@@ -1,6 +1,6 @@
 import { openDb, upsertFoodByBarcode, addLogEntry, getAllFoods, getAllLogEntries, addPhoto, getAllPhotos } from './db.js';
 import { lookupProduct } from './lookup.js';
-import { buildWorkbook, workbookToBlob } from './export.js';
+import { buildWorkbook, workbookToBlob, loadGuideSheets } from './export.js';
 import { createTimer } from './timing.js';
 import { startScanning } from './scan.js';
 
@@ -273,7 +273,8 @@ async function main() {
     const logEntries = (await getAllLogEntries(db)).map((e) =>
       e.photoRef ? { ...e, notes: `${e.notes} (see photo-${e.photoRef}.jpg)` } : e
     );
-    const wb = buildWorkbook(window.XLSX, { foods, logEntries });
+    const guideSheets = await loadGuideSheets(window.XLSX);
+    const wb = buildWorkbook(window.XLSX, { foods, logEntries, guideSheets });
     const photos = await getAllPhotos(db);
     const xlsxBlob = workbookToBlob(wb, window.XLSX);
     const xlsxFile = new File([xlsxBlob], 'food-diary-export.xlsx', { type: xlsxBlob.type });
