@@ -1,4 +1,4 @@
-const CACHE_NAME = 'food-diary-v5';
+const CACHE_NAME = 'food-diary-v6';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -13,6 +13,7 @@ const SHELL_FILES = [
   './js/scan.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './assets/nutritics-food-diary-v2-template.xlsx',
 ];
 
 self.addEventListener('install', (event) => {
