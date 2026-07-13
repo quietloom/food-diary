@@ -1,6 +1,6 @@
 import { openDb, upsertFoodByBarcode, addLogEntry, getAllFoods, getAllLogEntries, addPhoto, getAllPhotos } from './db.js';
 import { lookupProduct } from './lookup.js';
-import { buildWorkbook, downloadWorkbook, workbookToBlob } from './export.js';
+import { buildWorkbook, workbookToBlob } from './export.js';
 import { createTimer } from './timing.js';
 import { startScanning } from './scan.js';
 
@@ -302,7 +302,18 @@ async function main() {
         statusEl.textContent = 'Shared.';
         flashExportBtn('flash-success');
       } else {
-        downloadWorkbook(wb, window.XLSX);
+        // Build the download ourselves from xlsxBlob (explicit MIME type + filename)
+        // rather than XLSX.writeFile's internal mechanism — on at least one real
+        // Android browser (DuckDuckGo), writeFile's download was saved as a generic
+        // .bin instead of .xlsx. This mirrors the already-working photo download below.
+        const xlsxUrl = URL.createObjectURL(xlsxBlob);
+        const xlsxA = document.createElement('a');
+        xlsxA.href = xlsxUrl;
+        xlsxA.download = 'food-diary-export.xlsx';
+        document.body.appendChild(xlsxA);
+        xlsxA.click();
+        xlsxA.remove();
+        URL.revokeObjectURL(xlsxUrl);
         for (const p of photos) {
           const url = URL.createObjectURL(p.blob);
           const a = document.createElement('a');
