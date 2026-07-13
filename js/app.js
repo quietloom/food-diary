@@ -34,6 +34,7 @@ async function main() {
   let scanStarting = false; // true while getUserMedia is pending, to block re-entrant beginScan() calls
   let photoStarting = false; // true while getUserMedia is pending, to block re-entrant photo-stream opens
   let scanTimeoutId = null; // pending "can't find it? take a photo" prompt timer
+  let scanCancelled = false; // set by the Cancel button; checked after a pending getUserMedia resolves, so a stream that arrives after Cancel was tapped gets stopped instead of assigned
   let currentScreen = 'scan'; // matches index.html's default-visible screen; the scan screen starts idle (no beginScan() call at load)
 
   const scanIdle = document.getElementById('scan-idle');
@@ -122,6 +123,7 @@ async function main() {
   async function beginScan() {
     setScanUiActive(true);
     scanStarting = true;
+    scanCancelled = false;
     const stop = await startScanning(
       document.getElementById('viewfinder'),
       async (barcode) => {
@@ -139,9 +141,10 @@ async function main() {
       (msg) => { scanStatus.textContent = msg; },
     );
     scanStarting = false;
-    // If the user navigated away from the scan screen while getUserMedia was pending,
-    // don't leave this stream open behind them — stop it immediately instead of assigning scanStop.
-    if (currentScreen !== 'scan') {
+    // If the user navigated away from the scan screen, or hit Cancel, while getUserMedia
+    // was pending, don't leave this stream open behind them — stop it immediately instead
+    // of assigning scanStop.
+    if (currentScreen !== 'scan' || scanCancelled) {
       stop();
       return;
     }
@@ -153,6 +156,7 @@ async function main() {
     if (!scanStop && !scanStarting) beginScan();
   });
   document.getElementById('scan-cancel-btn').addEventListener('click', () => {
+    scanCancelled = true;
     stopScan();
     setScanUiActive(false);
   });
