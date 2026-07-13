@@ -1,4 +1,4 @@
-import { openDb, upsertFoodByBarcode, addLogEntry, getAllFoods, getAllLogEntries, addPhoto } from './db.js';
+import { openDb, upsertFoodByBarcode, addLogEntry, getAllFoods, getAllLogEntries, addPhoto, getAllPhotos } from './db.js';
 import { lookupProduct } from './lookup.js';
 import { buildWorkbook, downloadWorkbook } from './export.js';
 import { createTimer } from './timing.js';
@@ -72,8 +72,10 @@ async function main() {
 
   // --- Confirm card -------------------------------------------------
   function openConfirmCard(food, { onLog }) {
+    const isPhotoEntry = food.code === null;
     confirmCard.innerHTML = `
-      <strong>${food.name || '(name not found — Nutritics will resolve from the barcode)'}</strong>${food.nameUnconfirmed ? ' <em>(unconfirmed name — verify against packet)</em>' : ''} (${food.code})
+      <strong>${food.name || (isPhotoEntry ? '' : '(name not found — Nutritics will resolve from the barcode)')}</strong>${food.nameUnconfirmed ? ' <em>(unconfirmed name — verify against packet)</em>' : ''}${isPhotoEntry ? '' : ` (${food.code})`}
+      ${isPhotoEntry ? '<label>What is it?</label><input id="cc-desc" placeholder="e.g. blueberries">' : ''}
       <label>Meal</label>
       <select id="cc-meal">
         ${['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((m) => `<option ${m === inferMeal() ? 'selected' : ''}>${m}</option>`).join('')}
@@ -87,10 +89,12 @@ async function main() {
     `;
     confirmCard.classList.remove('hidden');
     document.getElementById('cc-log-btn').addEventListener('click', async () => {
+      const descEl = document.getElementById('cc-desc');
       await onLog({
         meal: document.getElementById('cc-meal').value,
         quantity: parseFloat(document.getElementById('cc-qty').value) || null,
         unit: document.getElementById('cc-unit').value,
+        ...(descEl ? { description: descEl.value.trim() } : {}),
         ...(food.nameUnconfirmed ? { notes: 'name unconfirmed — verify against packet' } : {}),
       });
       confirmCard.classList.add('hidden');
@@ -170,9 +174,21 @@ async function main() {
   async function renderLog() {
     const logEntries = await getAllLogEntries(db);
     const foods = await getAllFoods(db);
+    const photos = await getAllPhotos(db);
     const byCode = Object.fromEntries(foods.map((f) => [f.code, f]));
+    const photoById = Object.fromEntries(photos.map((p) => [p.id, p]));
     const tbody = document.querySelector('#log-table tbody');
-    tbody.innerHTML = logEntries.map((e) => `<tr><td>${e.day}</td><td>${e.meal}</td><td>${byCode[e.foodCode]?.name || e.foodCode}${byCode[e.foodCode]?.nameUnconfirmed ? ' <em>UNCONFIRMED</em>' : ''}</td><td>${e.quantity ?? ''}${e.unit ?? ''}</td></tr>`).join('');
+    tbody.innerHTML = logEntries.map((e) => {
+      const food = byCode[e.foodCode];
+      const name = food?.name || e.notes || e.foodCode || '(no description)';
+      const unconfirmed = food?.nameUnconfirmed ? ' <em>UNCONFIRMED</em>' : '';
+      let photoCell = '';
+      if (e.photoRef && photoById[e.photoRef]) {
+        const url = URL.createObjectURL(photoById[e.photoRef].blob);
+        photoCell = `<a href="${url}" target="_blank"><img class="thumb" src="${url}"></a>`;
+      }
+      return `<tr><td>${e.day}</td><td>${e.meal}</td><td>${name}${unconfirmed}</td><td>${e.quantity ?? ''}${e.unit ?? ''}</td><td>${photoCell}</td></tr>`;
+    }).join('');
   }
 
   // --- Quick-add --------------------------------------------------------
@@ -237,7 +253,8 @@ async function main() {
     if (photoStop) photoStop();
     showScreen('scan');
     openConfirmCard({ code: null, name: '' }, {
-      onLog: (details) => logEntry({ foodCode: null, notes: 'reference photo — describe for the dietitian', photoRef, ...details }),
+      onLog: ({ description, ...details }) =>
+        logEntry({ foodCode: null, notes: description || 'reference photo — describe for the dietitian', photoRef, ...details }),
     });
   });
 
@@ -245,14 +262,37 @@ async function main() {
   async function renderExportSummary() {
     const foods = await getAllFoods(db);
     const logEntries = await getAllLogEntries(db);
+    const photos = await getAllPhotos(db);
     document.getElementById('export-summary').textContent =
       `${logEntries.length} entries across ${foods.length} distinct foods.`;
+    const photosBtn = document.getElementById('export-photos-btn');
+    if (photos.length > 0) {
+      photosBtn.textContent = `Download photos (${photos.length})`;
+      photosBtn.classList.remove('hidden');
+    } else {
+      photosBtn.classList.add('hidden');
+    }
   }
   document.getElementById('export-btn').addEventListener('click', async () => {
     const foods = await getAllFoods(db);
-    const logEntries = await getAllLogEntries(db);
+    const logEntries = (await getAllLogEntries(db)).map((e) =>
+      e.photoRef ? { ...e, notes: `${e.notes} (see photo-${e.photoRef}.jpg)` } : e
+    );
     const wb = buildWorkbook(window.XLSX, { foods, logEntries });
     downloadWorkbook(wb, window.XLSX);
+  });
+  document.getElementById('export-photos-btn').addEventListener('click', async () => {
+    const photos = await getAllPhotos(db);
+    for (const p of photos) {
+      const url = URL.createObjectURL(p.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `photo-${p.id}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
   });
 
   // --- Timing ---------------------------------------------------------------
