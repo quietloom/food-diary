@@ -77,3 +77,12 @@ export function buildWorkbook(XLSX, { foods, logEntries }) {
 export function downloadWorkbook(workbook, XLSX, filename = 'food-diary-export.xlsx') {
   XLSX.writeFile(workbook, filename);
 }
+
+/** Builds an in-memory Blob of the workbook's xlsx bytes, for use with
+ * navigator.share() or anything else that wants raw file data instead of
+ * triggering a download. Doesn't touch downloadWorkbook, which stays the
+ * direct-download fallback path — this is purely additive. */
+export function workbookToBlob(workbook, XLSX) {
+  const arrayBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
+  return new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
