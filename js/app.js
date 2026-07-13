@@ -318,7 +318,11 @@ async function main() {
     setTimeout(() => btn.classList.remove(cls), 2000);
   }
 
+  let exportInFlight = false; // guards against a double-tap firing two overlapping downloads/shares
+
   document.getElementById('export-share-btn').addEventListener('click', async () => {
+    if (exportInFlight) return;
+    exportInFlight = true;
     const statusEl = document.getElementById('export-status');
     statusEl.textContent = '';
     try {
@@ -345,9 +349,12 @@ async function main() {
         flashExportBtn('flash-success');
       }
     } catch (err) {
-      if (err.name === 'AbortError') return; // user cancelled the share sheet — not an error
-      statusEl.textContent = `Export failed — ${err.message || err}`;
-      flashExportBtn('flash-error');
+      if (err.name !== 'AbortError') { // user cancelling the share sheet is not an error
+        statusEl.textContent = `Export failed — ${err.message || err}`;
+        flashExportBtn('flash-error');
+      }
+    } finally {
+      exportInFlight = false;
     }
   });
 
