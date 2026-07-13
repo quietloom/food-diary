@@ -27,8 +27,10 @@ function writeHeaders(XLSX, ws, headers, row) {
 /** Builds a fresh workbook matching files/nutritics-food-diary-v2.xlsx's
  * schema. Only ever writes the manual-entry columns — never the template's
  * own formula columns (Library J/K, Log F/G) — same rule scan_to_diary.py
- * follows, so the same free-row-detection bug can't recur here either. */
-export function buildWorkbook(XLSX, { foods, logEntries }) {
+ * follows, so the same free-row-detection bug can't recur here either.
+ * Optional guideSheets ({ howToUse, lists }, from loadGuideSheets) carries
+ * the template's "How to use" and "Lists" tabs through untouched. */
+export function buildWorkbook(XLSX, { foods, logEntries, guideSheets }) {
   const wb = XLSX.utils.book_new();
   const lib = {};
   const log = {};
@@ -67,8 +69,10 @@ export function buildWorkbook(XLSX, { foods, logEntries }) {
   lib['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxLibRow, c: Math.max(LIBRARY_HEADERS.length - 1, LIBRARY_NOTE_COL - 1) } });
   log['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: maxLogRow, c: LOG_HEADERS.length - 1 } });
 
+  if (guideSheets?.howToUse) XLSX.utils.book_append_sheet(wb, guideSheets.howToUse, 'How to use');
   XLSX.utils.book_append_sheet(wb, lib, 'Food Library');
   XLSX.utils.book_append_sheet(wb, log, 'Daily Log');
+  if (guideSheets?.lists) XLSX.utils.book_append_sheet(wb, guideSheets.lists, 'Lists');
   return wb;
 }
 
@@ -85,4 +89,29 @@ export function downloadWorkbook(workbook, XLSX, filename = 'food-diary-export.x
 export function workbookToBlob(workbook, XLSX) {
   const arrayBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
   return new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+const GUIDE_SHEET_TEMPLATE_URL = './assets/nutritics-food-diary-v2-template.xlsx';
+
+/** Browser-only: fetches the bundled template and returns its "How to use"
+ * and "Lists" sheets for buildWorkbook's optional guideSheets param. Returns
+ * null on any fetch/parse failure (e.g. asset not yet cached offline) so
+ * export proceeds without them rather than failing — a console.warn is the
+ * only signal, no user-facing status message (the guide sheets are
+ * supplementary, not the verified diary data). Not unit tested — no fetch
+ * in Node, same as downloadWorkbook below it. */
+export async function loadGuideSheets(XLSX) {
+  try {
+    const res = await fetch(GUIDE_SHEET_TEMPLATE_URL);
+    if (!res.ok) {
+      console.warn(`loadGuideSheets: template fetch failed (${res.status}) — exporting without guide sheets`);
+      return null;
+    }
+    const buf = await res.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellStyles: true });
+    return { howToUse: wb.Sheets['How to use'], lists: wb.Sheets['Lists'] };
+  } catch (err) {
+    console.warn('loadGuideSheets: failed to load/parse template — exporting without guide sheets', err);
+    return null;
+  }
 }
