@@ -89,6 +89,10 @@ export async function addPhoto(db, blob) {
   return reqToPromise(tx(db, STORE_PHOTOS, 'readwrite').add({ blob, createdAt: Date.now() }));
 }
 
+export async function getAllPhotos(db) {
+  return reqToPromise(tx(db, STORE_PHOTOS, 'readonly').getAll());
+}
+
 export async function startSession(db, now = Date.now) {
   return reqToPromise(tx(db, STORE_SESSIONS, 'readwrite').add({ startedAt: now(), endedAt: null, entriesLogged: null }));
 }
