@@ -263,12 +263,52 @@ async function main() {
   });
 
   // --- Export -------------------------------------------------------------
+  let pendingExport = null; // built as soon as the Export screen opens, so the click handler below can fire the download/share almost synchronously with the tap
+
+  async function buildExportFiles() {
+    if (typeof window.XLSX === 'undefined') {
+      throw new Error('export library not loaded — check your connection and reload the app');
+    }
+    const foods = await getAllFoods(db);
+    const logEntries = (await getAllLogEntries(db)).map((e) =>
+      e.photoRef ? { ...e, notes: `${e.notes} (see photo-${e.photoRef}.jpg)` } : e
+    );
+    const wb = buildWorkbook(window.XLSX, { foods, logEntries });
+    const photos = await getAllPhotos(db);
+    const xlsxBlob = workbookToBlob(wb, window.XLSX);
+    const xlsxFile = new File([xlsxBlob], 'food-diary-export.xlsx', { type: xlsxBlob.type });
+    const photoFiles = photos.map((p) => new File([p.blob], `photo-${p.id}.jpg`, { type: p.blob.type || 'image/jpeg' }));
+    return { xlsxBlob, allFiles: [xlsxFile, ...photoFiles], photos };
+  }
+
   async function renderExportSummary() {
     const foods = await getAllFoods(db);
     const logEntries = await getAllLogEntries(db);
     document.getElementById('export-summary').textContent =
       `${logEntries.length} entries across ${foods.length} distinct foods.`;
     document.getElementById('export-status').textContent = '';
+    // Pre-build now, while the user is just looking at this screen — not on
+    // click. Some mobile browsers silently drop a download/share triggered
+    // too many async steps after the user's original tap (transient-activation
+    // expiry); building ahead of time means the click handler below only has
+    // to await an already-resolved promise, not several real IndexedDB reads.
+    pendingExport = buildExportFiles().then(
+      (result) => ({ ok: true, ...result }),
+      (err) => ({ ok: false, err }),
+    );
+  }
+
+  function downloadFile(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Revoke after a delay, not immediately — some browsers need time to
+    // actually read the blob before the URL becomes invalid.
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
   function flashExportBtn(cls) {
@@ -282,20 +322,11 @@ async function main() {
     const statusEl = document.getElementById('export-status');
     statusEl.textContent = '';
     try {
-      if (typeof window.XLSX === 'undefined') {
-        throw new Error('export library not loaded — check your connection and reload the app');
+      const result = await pendingExport;
+      if (!result || !result.ok) {
+        throw (result && result.err) || new Error('export not ready — try again');
       }
-      const foods = await getAllFoods(db);
-      const logEntries = (await getAllLogEntries(db)).map((e) =>
-        e.photoRef ? { ...e, notes: `${e.notes} (see photo-${e.photoRef}.jpg)` } : e
-      );
-      const wb = buildWorkbook(window.XLSX, { foods, logEntries });
-      const photos = await getAllPhotos(db);
-
-      const xlsxBlob = workbookToBlob(wb, window.XLSX);
-      const xlsxFile = new File([xlsxBlob], 'food-diary-export.xlsx', { type: xlsxBlob.type });
-      const photoFiles = photos.map((p) => new File([p.blob], `photo-${p.id}.jpg`, { type: p.blob.type || 'image/jpeg' }));
-      const allFiles = [xlsxFile, ...photoFiles];
+      const { xlsxBlob, allFiles, photos } = result;
 
       if (navigator.canShare && navigator.canShare({ files: allFiles })) {
         await navigator.share({ files: allFiles, title: 'Food diary export' });
@@ -305,24 +336,10 @@ async function main() {
         // Build the download ourselves from xlsxBlob (explicit MIME type + filename)
         // rather than XLSX.writeFile's internal mechanism — on at least one real
         // Android browser (DuckDuckGo), writeFile's download was saved as a generic
-        // .bin instead of .xlsx. This mirrors the already-working photo download below.
-        const xlsxUrl = URL.createObjectURL(xlsxBlob);
-        const xlsxA = document.createElement('a');
-        xlsxA.href = xlsxUrl;
-        xlsxA.download = 'food-diary-export.xlsx';
-        document.body.appendChild(xlsxA);
-        xlsxA.click();
-        xlsxA.remove();
-        URL.revokeObjectURL(xlsxUrl);
+        // .bin instead of .xlsx.
+        downloadFile(xlsxBlob, 'food-diary-export.xlsx');
         for (const p of photos) {
-          const url = URL.createObjectURL(p.blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `photo-${p.id}.jpg`;
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          URL.revokeObjectURL(url);
+          downloadFile(p.blob, `photo-${p.id}.jpg`);
         }
         statusEl.textContent = `Downloaded ${1 + photos.length} file(s) — check your Downloads folder.`;
         flashExportBtn('flash-success');
