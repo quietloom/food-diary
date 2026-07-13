@@ -16,6 +16,12 @@
       <header class="topbar">
         <button id="menu-btn" aria-label="Menu">&#9776;</button>
         <span class="title">Food diary</span>
+        <button class="icon-btn" data-nav="quick-add" aria-label="Quick-add">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+        </button>
+        <button class="icon-btn" data-nav="photo" aria-label="No barcode, photo">
+          <svg viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        </button>
         <span class="spacer"></span>
       </header>
       <div id="scan-idle">
@@ -32,8 +38,6 @@
     </div>
 
     <nav id="menu" class="menu hidden">
-      <button data-nav="quick-add">Quick-add</button>
-      <button data-nav="photo">No barcode (photo)</button>
       <button data-nav="library">Library</button>
       <button data-nav="log">Daily Log</button>
       <button data-nav="export">Export</button>
