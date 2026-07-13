@@ -17,6 +17,8 @@ const inferMeal = () => {
   return 'Dinner';
 };
 
+const SCAN_TIMEOUT_MS = 8000;
+
 async function main() {
   const db = await openDb();
   const timer = createTimer(db);
@@ -31,16 +33,31 @@ async function main() {
   let photoStop = null;
   let scanStarting = false; // true while getUserMedia is pending, to block re-entrant beginScan() calls
   let photoStarting = false; // true while getUserMedia is pending, to block re-entrant photo-stream opens
-  let currentScreen = 'scan'; // matches index.html's default-visible screen (showScreen() is never called before the initial beginScan())
+  let scanTimeoutId = null; // pending "can't find it? take a photo" prompt timer
+  let currentScreen = 'scan'; // matches index.html's default-visible screen; the scan screen starts idle (no beginScan() call at load)
+
+  const scanIdle = document.getElementById('scan-idle');
+  const scanActive = document.getElementById('scan-active');
+  const scanFallback = document.getElementById('scan-fallback');
+
+  function setScanUiActive(active) {
+    scanIdle.classList.toggle('hidden', active);
+    scanActive.classList.toggle('hidden', !active);
+    scanFallback.classList.add('hidden');
+  }
+
+  function stopScan() {
+    if (scanTimeoutId) { clearTimeout(scanTimeoutId); scanTimeoutId = null; }
+    if (scanStop) { scanStop(); scanStop = null; }
+  }
 
   function showScreen(name) {
     currentScreen = name;
     screens.forEach((s) => s.classList.toggle('hidden', s.dataset.screen !== name));
     menu.classList.add('hidden');
     confirmCard.classList.add('hidden');
-    if (name !== 'scan' && scanStop) { scanStop(); scanStop = null; }
+    if (name !== 'scan') { stopScan(); setScanUiActive(false); }
     if (name !== 'photo' && photoStop) { photoStop(); photoStop = null; }
-    if (name === 'scan' && !scanStop && !scanStarting) beginScan();
     if (name === 'library') renderLibrary();
     if (name === 'log') renderLog();
     if (name === 'export') renderExportSummary();
@@ -99,15 +116,18 @@ async function main() {
   // --- Scan screen ----------------------------------------------------
   const scanStatus = document.getElementById('scan-status');
   async function beginScan() {
+    setScanUiActive(true);
     scanStarting = true;
     const stop = await startScanning(
       document.getElementById('viewfinder'),
       async (barcode) => {
+        stopScan();
         const looked = await lookupProduct(barcode).catch(() => ({ name: '', brand: '', packQty: null, packUnit: '', note: '' }));
         const { code, nameUnconfirmed } = await upsertFoodByBarcode(db, {
           barcode, name: looked.name, brand: looked.brand, packSize: looked.packQty, packUnit: looked.packUnit,
         });
         scanStatus.textContent = '';
+        setScanUiActive(false);
         openConfirmCard({ code, name: looked.name, packSize: looked.packQty, packUnit: looked.packUnit, nameUnconfirmed }, {
           onLog: (details) => logEntry({ foodCode: code, ...details }),
         });
@@ -122,7 +142,20 @@ async function main() {
       return;
     }
     scanStop = stop;
+    scanTimeoutId = setTimeout(() => { scanFallback.classList.remove('hidden'); }, SCAN_TIMEOUT_MS);
   }
+
+  document.getElementById('scan-idle-btn').addEventListener('click', () => {
+    if (!scanStop && !scanStarting) beginScan();
+  });
+  document.getElementById('scan-cancel-btn').addEventListener('click', () => {
+    stopScan();
+    setScanUiActive(false);
+  });
+  document.getElementById('scan-fallback-btn').addEventListener('click', () => {
+    stopScan();
+    showScreen('photo');
+  });
 
   // --- Library / Log screens ------------------------------------------
   async function renderLibrary() {
@@ -239,8 +272,6 @@ async function main() {
     }
     renderTiming();
   });
-
-  await beginScan();
 }
 
 main();

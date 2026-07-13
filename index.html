@@ -18,8 +18,17 @@
         <span class="title">Food diary</span>
         <span class="spacer"></span>
       </header>
-      <video id="viewfinder" autoplay playsinline muted></video>
-      <p id="scan-status" class="status"></p>
+      <div id="scan-idle">
+        <button id="scan-idle-btn" class="mock-button">Scan barcode</button>
+      </div>
+      <div id="scan-active" class="hidden">
+        <video id="viewfinder" autoplay playsinline muted></video>
+        <p id="scan-status" class="status"></p>
+        <button id="scan-cancel-btn">Cancel</button>
+        <p id="scan-fallback" class="status hidden">
+          Can't find a barcode? <button id="scan-fallback-btn">Take a photo instead</button>
+        </p>
+      </div>
     </div>
 
     <nav id="menu" class="menu hidden">
