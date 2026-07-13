@@ -321,6 +321,13 @@ async function main() {
 
   let exportInFlight = false; // guards against a double-tap firing two overlapping downloads/shares
 
+  function downloadExportFiles(xlsxBlob, photos) {
+    downloadFile(xlsxBlob, 'food-diary-export.xlsx');
+    for (const p of photos) {
+      downloadFile(p.blob, `photo-${p.id}.jpg`);
+    }
+  }
+
   document.getElementById('export-share-btn').addEventListener('click', async () => {
     if (exportInFlight) return;
     exportInFlight = true;
@@ -334,18 +341,26 @@ async function main() {
       const { xlsxBlob, allFiles, photos } = result;
 
       if (navigator.canShare && navigator.canShare({ files: allFiles })) {
-        await navigator.share({ files: allFiles, title: 'Food diary export' });
-        statusEl.textContent = 'Shared.';
-        flashExportBtn('flash-success');
+        try {
+          await navigator.share({ files: allFiles, title: 'Food diary export' });
+          statusEl.textContent = 'Shared.';
+          flashExportBtn('flash-success');
+        } catch (shareErr) {
+          if (shareErr.name === 'AbortError') throw shareErr; // user cancelled the share sheet — not an error
+          // canShare() said yes but the OS-level share still refused (seen on
+          // real Android/Chrome rejecting the xlsx MIME type specifically,
+          // even though plain-text file sharing works fine) — fall back to a
+          // direct download rather than leaving the user stuck with an error.
+          downloadExportFiles(xlsxBlob, photos);
+          statusEl.textContent = `Couldn't share directly — downloaded ${1 + photos.length} file(s) instead.`;
+          flashExportBtn('flash-success');
+        }
       } else {
         // Build the download ourselves from xlsxBlob (explicit MIME type + filename)
         // rather than XLSX.writeFile's internal mechanism — on at least one real
         // Android browser (DuckDuckGo), writeFile's download was saved as a generic
         // .bin instead of .xlsx.
-        downloadFile(xlsxBlob, 'food-diary-export.xlsx');
-        for (const p of photos) {
-          downloadFile(p.blob, `photo-${p.id}.jpg`);
-        }
+        downloadExportFiles(xlsxBlob, photos);
         statusEl.textContent = `Downloaded ${1 + photos.length} file(s) — check your Downloads folder.`;
         flashExportBtn('flash-success');
       }
