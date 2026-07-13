@@ -1,6 +1,6 @@
 import { openDb, upsertFoodByBarcode, addLogEntry, getAllFoods, getAllLogEntries, addPhoto, getAllPhotos } from './db.js';
 import { lookupProduct } from './lookup.js';
-import { buildWorkbook, downloadWorkbook } from './export.js';
+import { buildWorkbook, downloadWorkbook, workbookToBlob } from './export.js';
 import { createTimer } from './timing.js';
 import { startScanning } from './scan.js';
 
@@ -266,36 +266,60 @@ async function main() {
   async function renderExportSummary() {
     const foods = await getAllFoods(db);
     const logEntries = await getAllLogEntries(db);
-    const photos = await getAllPhotos(db);
     document.getElementById('export-summary').textContent =
       `${logEntries.length} entries across ${foods.length} distinct foods.`;
-    const photosBtn = document.getElementById('export-photos-btn');
-    if (photos.length > 0) {
-      photosBtn.textContent = `Download photos (${photos.length})`;
-      photosBtn.classList.remove('hidden');
-    } else {
-      photosBtn.classList.add('hidden');
-    }
+    document.getElementById('export-status').textContent = '';
   }
-  document.getElementById('export-btn').addEventListener('click', async () => {
-    const foods = await getAllFoods(db);
-    const logEntries = (await getAllLogEntries(db)).map((e) =>
-      e.photoRef ? { ...e, notes: `${e.notes} (see photo-${e.photoRef}.jpg)` } : e
-    );
-    const wb = buildWorkbook(window.XLSX, { foods, logEntries });
-    downloadWorkbook(wb, window.XLSX);
-  });
-  document.getElementById('export-photos-btn').addEventListener('click', async () => {
-    const photos = await getAllPhotos(db);
-    for (const p of photos) {
-      const url = URL.createObjectURL(p.blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `photo-${p.id}.jpg`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+
+  function flashExportBtn(cls) {
+    const btn = document.getElementById('export-share-btn');
+    btn.classList.remove('flash-success', 'flash-error');
+    btn.classList.add(cls);
+    setTimeout(() => btn.classList.remove(cls), 2000);
+  }
+
+  document.getElementById('export-share-btn').addEventListener('click', async () => {
+    const statusEl = document.getElementById('export-status');
+    statusEl.textContent = '';
+    try {
+      if (typeof window.XLSX === 'undefined') {
+        throw new Error('export library not loaded — check your connection and reload the app');
+      }
+      const foods = await getAllFoods(db);
+      const logEntries = (await getAllLogEntries(db)).map((e) =>
+        e.photoRef ? { ...e, notes: `${e.notes} (see photo-${e.photoRef}.jpg)` } : e
+      );
+      const wb = buildWorkbook(window.XLSX, { foods, logEntries });
+      const photos = await getAllPhotos(db);
+
+      const xlsxBlob = workbookToBlob(wb, window.XLSX);
+      const xlsxFile = new File([xlsxBlob], 'food-diary-export.xlsx', { type: xlsxBlob.type });
+      const photoFiles = photos.map((p) => new File([p.blob], `photo-${p.id}.jpg`, { type: p.blob.type || 'image/jpeg' }));
+      const allFiles = [xlsxFile, ...photoFiles];
+
+      if (navigator.canShare && navigator.canShare({ files: allFiles })) {
+        await navigator.share({ files: allFiles, title: 'Food diary export' });
+        statusEl.textContent = 'Shared.';
+        flashExportBtn('flash-success');
+      } else {
+        downloadWorkbook(wb, window.XLSX);
+        for (const p of photos) {
+          const url = URL.createObjectURL(p.blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `photo-${p.id}.jpg`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+        statusEl.textContent = `Downloaded ${1 + photos.length} file(s) — check your Downloads folder.`;
+        flashExportBtn('flash-success');
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return; // user cancelled the share sheet — not an error
+      statusEl.textContent = `Export failed — ${err.message || err}`;
+      flashExportBtn('flash-error');
     }
   });
 
