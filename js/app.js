@@ -2,7 +2,7 @@ import { openDb, upsertFoodByBarcode, addLogEntry, getAllFoods, getAllLogEntries
 import { lookupProduct } from './lookup.js';
 import { buildWorkbook, workbookToBlob, loadGuideSheets } from './export.js';
 import { createTimer } from './timing.js';
-import { startScanning } from './scan.js';
+import { startScanning, decodeImageFile } from './scan.js';
 
 const todayDDMMYYYY = () => {
   const d = new Date();
@@ -120,6 +120,17 @@ async function main() {
 
   // --- Scan screen ----------------------------------------------------
   const scanStatus = document.getElementById('scan-status');
+
+  async function handleVerifiedBarcode(barcode) {
+    const looked = await lookupProduct(barcode).catch(() => ({ name: '', brand: '', packQty: null, packUnit: '', note: '' }));
+    const { code, nameUnconfirmed } = await upsertFoodByBarcode(db, {
+      barcode, name: looked.name, brand: looked.brand, packSize: looked.packQty, packUnit: looked.packUnit,
+    });
+    openConfirmCard({ code, name: looked.name, packSize: looked.packQty, packUnit: looked.packUnit, nameUnconfirmed }, {
+      onLog: (details) => logEntry({ foodCode: code, ...details }),
+    });
+  }
+
   async function beginScan() {
     setScanUiActive(true);
     scanStarting = true;
@@ -128,15 +139,9 @@ async function main() {
       document.getElementById('viewfinder'),
       async (barcode) => {
         stopScan();
-        const looked = await lookupProduct(barcode).catch(() => ({ name: '', brand: '', packQty: null, packUnit: '', note: '' }));
-        const { code, nameUnconfirmed } = await upsertFoodByBarcode(db, {
-          barcode, name: looked.name, brand: looked.brand, packSize: looked.packQty, packUnit: looked.packUnit,
-        });
         scanStatus.textContent = '';
         setScanUiActive(false);
-        openConfirmCard({ code, name: looked.name, packSize: looked.packQty, packUnit: looked.packUnit, nameUnconfirmed }, {
-          onLog: (details) => logEntry({ foodCode: code, ...details }),
-        });
+        await handleVerifiedBarcode(barcode);
       },
       (msg) => { scanStatus.textContent = msg; },
     );
@@ -163,6 +168,35 @@ async function main() {
   document.getElementById('scan-fallback-btn').addEventListener('click', () => {
     stopScan();
     showScreen('photo');
+  });
+
+  // --- Gallery-photo scan (missed live scan / no internet at the time) ----
+  const galleryScanStatus = document.getElementById('gallery-scan-status');
+  document.getElementById('gallery-scan-btn').addEventListener('click', () => {
+    document.getElementById('gallery-scan-input').click();
+  });
+  document.getElementById('gallery-scan-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = ''; // allow picking the same file again after a failed attempt
+    if (!file) return;
+    galleryScanStatus.textContent = 'Reading photo…';
+    let result;
+    try {
+      result = await decodeImageFile(file);
+    } catch (err) {
+      galleryScanStatus.textContent = `Couldn't read that photo (${err.message || err})`;
+      return;
+    }
+    if (!result) {
+      galleryScanStatus.textContent = 'No barcode found in that photo — try another';
+      return;
+    }
+    if (!result.checkDigitOk) {
+      galleryScanStatus.textContent = `check digit FAILED for '${result.code}' — read rejected, do not trust`;
+      return;
+    }
+    galleryScanStatus.textContent = '';
+    await handleVerifiedBarcode(result.code);
   });
 
   // --- Library / Log screens ------------------------------------------
