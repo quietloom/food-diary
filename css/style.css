@@ -53,6 +53,8 @@ table.list th { color: var(--text-muted); font-weight: 600; }
 #gallery-scan-btn { min-height: 44px; padding: 12px 24px; font-size: 15px; border-radius: var(--radius); border: none; background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
 
+#export-share-btn { width: 100%; min-height: 44px; padding: 14px; font-size: 16px; border: none; border-radius: var(--radius); background: var(--accent); color: var(--accent-text); font-weight: 600; }
+
 /* A disabled button must look disabled, or it reads as an unresponsive one. The
    Export button is deliberately disabled while its file is still being built —
    see renderExportSummary. */
