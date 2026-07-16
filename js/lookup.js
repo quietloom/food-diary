@@ -1,12 +1,22 @@
 const OFF_URL = (code) => `https://world.openfoodfacts.org/api/v2/product/${code}.json`;
 
+// A lookup that never responds must not strand the scan flow. The caller awaits
+// this before opening the confirm card, so an unbounded fetch leaves the camera
+// closed and the card never shown, with no error. The name is advisory only —
+// Nutritics resolves nutrition from the barcode — so abandoning a slow lookup
+// costs nothing clinically, while a stalled UI costs the dietitian real time.
+export const LOOKUP_TIMEOUT_MS = 5000;
+
 /** Advisory-only Open Food Facts lookup. Mirrors scan_to_diary.py::lookup —
- * never trusted, never used for nutrition, degrades gracefully offline. */
-export async function lookupProduct(barcode, fetchImpl = fetch) {
+ * never trusted, never used for nutrition, degrades gracefully offline. Always
+ * settles within `timeoutMs`; a timeout is reported like any other network
+ * failure. */
+export async function lookupProduct(barcode, fetchImpl = fetch, timeoutMs = LOOKUP_TIMEOUT_MS) {
   let data;
   try {
     const resp = await fetchImpl(OFF_URL(barcode), {
       headers: { 'User-Agent': 'NHS-diary-helper/1.0 (dietetics; barcode capture PWA)' },
+      signal: AbortSignal.timeout(timeoutMs),
     });
     data = await resp.json();
   } catch (e) {

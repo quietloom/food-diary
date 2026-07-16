@@ -93,16 +93,23 @@ export function workbookToBlob(workbook, XLSX) {
 
 const GUIDE_SHEET_TEMPLATE_URL = './assets/nutritics-food-diary-v2-template.xlsx';
 
+// The export click handler awaits the promise this feeds, having already
+// latched an in-flight guard — so an unbounded fetch here doesn't just delay
+// the export, it kills the button permanently until a page reload. Bounded for
+// the same reason as LOOKUP_TIMEOUT_MS: the guide sheets are supplementary, so
+// giving up on them is far cheaper than a dead Export screen.
+export const GUIDE_SHEET_TIMEOUT_MS = 5000;
+
 /** Browser-only: fetches the bundled template and returns its "How to use"
  * and "Lists" sheets for buildWorkbook's optional guideSheets param. Returns
- * null on any fetch/parse failure (e.g. asset not yet cached offline) so
+ * null on any fetch/parse/timeout failure (e.g. asset not yet cached offline) so
  * export proceeds without them rather than failing — a console.warn is the
  * only signal, no user-facing status message (the guide sheets are
- * supplementary, not the verified diary data). Not unit tested — no fetch
- * in Node, same as downloadWorkbook below it. */
-export async function loadGuideSheets(XLSX) {
+ * supplementary, not the verified diary data). Always settles within
+ * `timeoutMs`. `fetchImpl` is injectable for tests, mirroring lookupProduct. */
+export async function loadGuideSheets(XLSX, fetchImpl = fetch, timeoutMs = GUIDE_SHEET_TIMEOUT_MS) {
   try {
-    const res = await fetch(GUIDE_SHEET_TEMPLATE_URL);
+    const res = await fetchImpl(GUIDE_SHEET_TEMPLATE_URL, { signal: AbortSignal.timeout(timeoutMs) });
     if (!res.ok) {
       console.warn(`loadGuideSheets: template fetch failed (${res.status}) — exporting without guide sheets`);
       return null;
