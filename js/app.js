@@ -321,16 +321,39 @@ async function main() {
     const logEntries = await getAllLogEntries(db);
     document.getElementById('export-summary').textContent =
       `${logEntries.length} entries across ${foods.length} distinct foods.`;
-    document.getElementById('export-status').textContent = '';
+    const statusEl = document.getElementById('export-status');
+    const btn = document.getElementById('export-share-btn');
+
     // Pre-build now, while the user is just looking at this screen — not on
     // click. Some mobile browsers silently drop a download/share triggered
     // too many async steps after the user's original tap (transient-activation
     // expiry); building ahead of time means the click handler below only has
     // to await an already-resolved promise, not several real IndexedDB reads.
-    pendingExport = buildExportFiles().then(
+    //
+    // Pre-building ALONE is not enough, and assuming it was cost a real bug:
+    // on a cold service-worker cache the build is still in flight when the user
+    // taps, so the handler awaits a PENDING promise. That wait spends the tap's
+    // transient activation, the browser then silently ignores the programmatic
+    // download click, and the handler — which has no way to know — still reports
+    // "Downloaded 1 file(s)". Confirmed on a real phone: tapping straight away
+    // produced the success message and no file; waiting ~15s first worked every
+    // time. So the button stays disabled until the build has actually settled,
+    // which makes the too-early tap impossible rather than merely unlikely.
+    btn.disabled = true;
+    statusEl.textContent = 'Preparing export…';
+    const build = buildExportFiles().then(
       (result) => ({ ok: true, ...result }),
       (err) => ({ ok: false, err }),
     );
+    pendingExport = build;
+    build.finally(() => {
+      // Leaving and re-entering the Export screen starts a newer build; only the
+      // current one may enable the button, or an early tap would await a pending
+      // promise again and reintroduce exactly the bug above.
+      if (pendingExport !== build) return;
+      btn.disabled = false;
+      statusEl.textContent = '';
+    });
   }
 
   function downloadFile(blob, filename) {

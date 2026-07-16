@@ -53,5 +53,10 @@ table.list th { color: var(--text-muted); font-weight: 600; }
 #gallery-scan-btn { min-height: 44px; padding: 12px 24px; font-size: 15px; border-radius: var(--radius); border: none; background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
 
+/* A disabled button must look disabled, or it reads as an unresponsive one. The
+   Export button is deliberately disabled while its file is still being built —
+   see renderExportSummary. */
+button:disabled { opacity: .5; }
+
 .flash-success { background: #2a7 !important; transition: background .3s; }
 .flash-error { background: #a33 !important; transition: background .3s; }
