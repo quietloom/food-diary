@@ -1,4 +1,4 @@
-const CACHE_NAME = 'food-diary-v13';
+const CACHE_NAME = 'food-diary-v14';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const SHELL_FILES = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './assets/nutritics-food-diary-v2-template.xlsx',
+  './vendor/xlsx.full.min.js',
 ];
 
 self.addEventListener('install', (event) => {
@@ -29,12 +30,12 @@ self.addEventListener('activate', (event) => {
 });
 
 // Cache-first for the app shell; anything else (e.g. the Open Food Facts
-// lookup, or the CDN-hosted SheetJS/zxing-wasm scripts) falls through to the
-// network and simply fails offline. Scanning + IndexedDB storage work
-// offline, but SheetJS (Export) and zxing-wasm (barcode scanning on browsers
-// without native BarcodeDetector, e.g. iOS Safari) are NOT in SHELL_FILES —
-// they load from CDN and need network at least once per session before those
-// features work offline.
+// lookup, or the CDN-hosted zxing-wasm script) falls through to the network
+// and simply fails offline. SheetJS (Export) is now vendored into SHELL_FILES,
+// so Export works offline. zxing-wasm (barcode scanning on browsers without
+// native BarcodeDetector, e.g. iOS Safari) is still CDN-loaded and NOT in
+// SHELL_FILES — it needs network at least once per session before offline
+// scanning works there.
 self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cached) => cached || fetch(event.request)),
