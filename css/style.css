@@ -11,7 +11,7 @@
   --shadow: 0 2px 8px rgba(0,0,0,.12);
   /* Opacity of the blurred cereal background (body::before). Single knob —
      turn it up for a stronger photo, down to fade it out. */
-  --bg-photo-opacity: .26;
+  --bg-photo-opacity: .60;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -23,7 +23,7 @@
     --accent-text: #0d201c;
     --shadow: 0 2px 8px rgba(0,0,0,.4);
     /* A bright breakfast photo fights a dark theme harder — keep it fainter. */
-    --bg-photo-opacity: .20;
+    --bg-photo-opacity: .55;
   }
 }
 
@@ -48,7 +48,7 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background: url("../assets/cereal-bg.jpg") center / cover no-repeat;
-  filter: blur(14px);
+  filter: blur(5px);
   opacity: var(--bg-photo-opacity);
 }
 #app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
