@@ -60,7 +60,7 @@ body::before {
 /* Translucent header (80% surface) so the background photo shows through it too,
    same family as the buttons but more opaque. Title is absolutely centred so it
    sits mid-bar regardless of the back button / camera icon on the sides. */
-.topbar { position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: color-mix(in srgb, var(--surface) 80%, transparent); box-shadow: var(--shadow); }
+.topbar { position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: color-mix(in srgb, var(--surface) 60%, transparent); box-shadow: var(--shadow); }
 .topbar .title { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: 700; font-size: 17px; }
 .topbar .spacer { flex: 1; }
 .topbar button, .icon-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--text); border-radius: var(--radius); }
