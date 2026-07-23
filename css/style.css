@@ -12,7 +12,7 @@
   /* Translucent button surface — lets the background photo show through the
      secondary controls (gallery button + nav strip) while keeping text legible.
      References --surface, so it follows light/dark. Tune the % to taste. */
-  --btn-bg: color-mix(in srgb, var(--surface) 20%, transparent);
+  --btn-bg: color-mix(in srgb, var(--surface) 30%, transparent);
   /* Opacity of the blurred cereal background (body::before). Single knob —
      turn it up for a stronger photo, down to fade it out. */
   --bg-photo-opacity: .48;
@@ -57,8 +57,11 @@ body::before {
 }
 #app { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
 
-.topbar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--surface); box-shadow: var(--shadow); }
-.topbar .title { font-weight: 700; font-size: 17px; }
+/* Translucent header (80% surface) so the background photo shows through it too,
+   same family as the buttons but more opaque. Title is absolutely centred so it
+   sits mid-bar regardless of the back button / camera icon on the sides. */
+.topbar { position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: color-mix(in srgb, var(--surface) 80%, transparent); box-shadow: var(--shadow); }
+.topbar .title { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: 700; font-size: 17px; }
 .topbar .spacer { flex: 1; }
 .topbar button, .icon-btn { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; border: none; background: transparent; color: var(--text); border-radius: var(--radius); }
 .icon-btn svg { width: 22px; height: 22px; stroke: var(--accent); fill: none; stroke-width: 2; }
