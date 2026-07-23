@@ -90,9 +90,10 @@ table.list th { color: var(--text-muted); font-weight: 600; }
    cereal photo now does that job, so the box is gone to avoid competing with
    it. */
 #scan-idle { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 60vh; margin: 12px; padding: 24px 16px; }
-/* Primary action — stays solid mint so it clearly outranks everything else.
-   box-sizing + a shared width so it and the gallery button align to one column. */
-#scan-idle-btn { box-sizing: border-box; width: 280px; max-width: 82vw; min-height: 44px; padding: 20px 32px; font-size: 18px; border-radius: var(--radius); border: none; background: var(--accent); color: var(--accent-text); font-weight: 600; }
+/* Primary action — same translucent family as the rest (solid mint fought the
+   background), kept primary by SIZE: larger text + padding, not a loud fill.
+   box-sizing + shared width so it and the gallery button align to one column. */
+#scan-idle-btn { box-sizing: border-box; width: 280px; max-width: 82vw; min-height: 44px; padding: 20px 32px; font-size: 18px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: var(--btn-bg); color: var(--accent); font-weight: 700; }
 #scan-cancel-btn, #scan-fallback-btn { margin: 8px; min-height: 44px; padding: 10px 16px; font-size: 15px; border-radius: var(--radius); border: none; background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 /* Secondary — same translucent surface as the nav strip (one family), matched
    in width to the primary button above so the two stack as one column. */
