@@ -12,7 +12,7 @@
   /* Translucent button surface — lets the background photo show through the
      secondary controls (gallery button + nav strip) while keeping text legible.
      References --surface, so it follows light/dark. Tune the % to taste. */
-  --btn-bg: color-mix(in srgb, var(--surface) 40%, transparent);
+  --btn-bg: color-mix(in srgb, var(--surface) 20%, transparent);
   /* Opacity of the blurred cereal background (body::before). Single knob —
      turn it up for a stronger photo, down to fade it out. */
   --bg-photo-opacity: .48;
