@@ -12,7 +12,7 @@
   /* Translucent button surface — lets the background photo show through the
      secondary controls (gallery button + nav strip) while keeping text legible.
      References --surface, so it follows light/dark. Tune the % to taste. */
-  --btn-bg: color-mix(in srgb, var(--surface) 62%, transparent);
+  --btn-bg: color-mix(in srgb, var(--surface) 72%, transparent);
   /* Opacity of the blurred cereal background (body::before). Single knob —
      turn it up for a stronger photo, down to fade it out. */
   --bg-photo-opacity: .48;
@@ -93,11 +93,11 @@ table.list th { color: var(--text-muted); font-weight: 600; }
 /* Primary action — same translucent family as the rest (solid mint fought the
    background), kept primary by SIZE: larger text + padding, not a loud fill.
    box-sizing + shared width so it and the gallery button align to one column. */
-#scan-idle-btn { box-sizing: border-box; width: 280px; max-width: 82vw; min-height: 44px; padding: 20px 32px; font-size: 18px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: var(--btn-bg); color: var(--accent); font-weight: 700; }
+#scan-idle-btn { box-sizing: border-box; width: 280px; max-width: 82vw; min-height: 44px; padding: 20px 32px; font-size: 18px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); background: var(--btn-bg); color: var(--text); font-weight: 700; }
 #scan-cancel-btn, #scan-fallback-btn { margin: 8px; min-height: 44px; padding: 10px 16px; font-size: 15px; border-radius: var(--radius); border: none; background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 /* Secondary — same translucent surface as the nav strip (one family), matched
    in width to the primary button above so the two stack as one column. */
-#gallery-scan-btn { box-sizing: border-box; width: 280px; max-width: 82vw; min-height: 44px; padding: 12px 24px; font-size: 15px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); background: var(--btn-bg); color: var(--accent); font-weight: 600; }
+#gallery-scan-btn { box-sizing: border-box; width: 280px; max-width: 82vw; min-height: 44px; padding: 12px 24px; font-size: 15px; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); background: var(--btn-bg); color: var(--text); font-weight: 600; }
 .thumb { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; }
 
 #export-share-btn { width: 100%; min-height: 44px; padding: 14px; font-size: 16px; border: none; border-radius: var(--radius); background: var(--accent); color: var(--accent-text); font-weight: 600; }

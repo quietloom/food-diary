@@ -1,4 +1,4 @@
-const CACHE_NAME = 'food-diary-v26';
+const CACHE_NAME = 'food-diary-v27';
 const SHELL_FILES = [
   './',
   './index.html',
