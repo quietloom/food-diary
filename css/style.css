@@ -11,7 +11,7 @@
   --shadow: 0 2px 8px rgba(0,0,0,.12);
   /* Opacity of the blurred cereal background (body::before). Single knob —
      turn it up for a stronger photo, down to fade it out. */
-  --bg-photo-opacity: .16;
+  --bg-photo-opacity: .26;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -23,7 +23,7 @@
     --accent-text: #0d201c;
     --shadow: 0 2px 8px rgba(0,0,0,.4);
     /* A bright breakfast photo fights a dark theme harder — keep it fainter. */
-    --bg-photo-opacity: .10;
+    --bg-photo-opacity: .20;
   }
 }
 
