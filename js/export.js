@@ -31,10 +31,10 @@ function writeHeaders(XLSX, ws, headers, row) {
  * auto-fill them, so leaving them blank would force the dietitian to cross-
  * reference every code by hand. (scan_to_diary.py leaves F/G alone because it
  * appends to a template copy whose formulas already fill them; the PWA has no
- * such formulas, so it fills the values itself. Library J/K — Times used /
- * Check — are still left blank; those are cross-row aggregates the template's
- * own formulas own, and the How-to-use Progress panel already derives the
- * search-saving count from the Library/Log row counts.)
+ * such formulas, so it fills the values itself. Library J (Times used) is
+ * likewise resolved to a value — the per-food occasion count. Library K
+ * (Check) stays blank: it's the template's duplicate-code flag, and the app
+ * already guarantees unique codes, so there's nothing for it to catch.)
  * Optional guideSheets ({ howToUse, lists }, from loadGuideSheets) carries
  * the template's "How to use" and "Lists" tabs through untouched. */
 export function buildWorkbook(XLSX, { foods, logEntries, guideSheets }) {
@@ -45,6 +45,11 @@ export function buildWorkbook(XLSX, { foods, logEntries, guideSheets }) {
   writeHeaders(XLSX, lib, LIBRARY_HEADERS, LIBRARY_HEADER_ROW);
   writeHeaders(XLSX, log, LOG_HEADERS, LOG_HEADER_ROW);
 
+  // How many Daily Log occasions reference each food code — the "search saved"
+  // count, resolved to a value since the fresh sheet has no COUNTIF to derive it.
+  const timesUsed = {};
+  logEntries.forEach((e) => { if (e.foodCode) timesUsed[e.foodCode] = (timesUsed[e.foodCode] || 0) + 1; });
+
   foods.forEach((f, i) => {
     const row = LIBRARY_FIRST_DATA_ROW + i;
     setCell(XLSX, lib, row, 1, f.code);
@@ -54,6 +59,7 @@ export function buildWorkbook(XLSX, { foods, logEntries, guideSheets }) {
     if (f.packSize) setCell(XLSX, lib, row, 5, `${f.packSize}${f.packUnit || ''}`);
     if (f.typicalPortion) setCell(XLSX, lib, row, 6, f.typicalPortion);
     if (f.cookingMethod) setCell(XLSX, lib, row, 7, f.cookingMethod);
+    if (timesUsed[f.code]) setCell(XLSX, lib, row, 10, timesUsed[f.code]); // Times used (auto)
     if (f.nameUnconfirmed) setCell(XLSX, lib, row, LIBRARY_NOTE_COL, 'NAME UNCONFIRMED — verify against packet');
   });
 
