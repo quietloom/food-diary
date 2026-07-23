@@ -14,15 +14,11 @@
   <main id="app">
     <div id="screen-scan" class="screen" data-screen="scan">
       <header class="topbar">
-        <button id="menu-btn" aria-label="Menu">&#9776;</button>
         <span class="title">Food diary</span>
-        <button class="icon-btn" data-nav="quick-add" aria-label="Quick-add">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-        </button>
+        <span class="spacer"></span>
         <button class="icon-btn" data-nav="photo" aria-label="No barcode, photo">
           <svg viewBox="0 0 24 24"><path d="M4 8h3l2-2h6l2 2h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
         </button>
-        <span class="spacer"></span>
       </header>
       <div id="scan-idle">
         <button id="scan-idle-btn">Scan barcode</button>
@@ -38,15 +34,13 @@
           Can't find a barcode? <button id="scan-fallback-btn">Take a photo instead</button>
         </p>
       </div>
+      <nav id="quicknav">
+        <button data-nav="library"><svg viewBox="0 0 24 24"><path d="M5 4h11a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2z"/><path d="M9 4v14"/></svg><span>Library</span></button>
+        <button data-nav="log"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></svg><span>Daily Log</span></button>
+        <button data-nav="quick-add"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>Quick-add</span></button>
+        <button data-nav="export"><svg viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 15v4a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4"/></svg><span>Export</span></button>
+      </nav>
     </div>
-
-    <nav id="menu" class="menu hidden">
-      <button data-nav="library">Library</button>
-      <button data-nav="log">Daily Log</button>
-      <button data-nav="export">Export</button>
-      <button data-nav="timing">Timing</button>
-      <button data-nav="scan">Close menu</button>
-    </nav>
 
     <div id="confirm-card" class="card hidden"></div>
 

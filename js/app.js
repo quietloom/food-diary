@@ -23,8 +23,6 @@ async function main() {
   const db = await openDb();
   const timer = createTimer(db);
 
-  const menu = document.getElementById('menu');
-  const menuBtn = document.getElementById('menu-btn');
   const screens = Array.from(document.querySelectorAll('.screen'));
   const confirmCard = document.getElementById('confirm-card');
 
@@ -55,7 +53,6 @@ async function main() {
   function showScreen(name) {
     currentScreen = name;
     screens.forEach((s) => s.classList.toggle('hidden', s.dataset.screen !== name));
-    menu.classList.add('hidden');
     confirmCard.classList.add('hidden');
     if (name !== 'scan') { stopScan(); setScanUiActive(false); }
     if (name !== 'photo' && photoStop) { photoStop(); photoStop = null; }
@@ -66,10 +63,16 @@ async function main() {
     if (name === 'timing') renderTiming();
   }
 
-  menuBtn.addEventListener('click', () => menu.classList.toggle('hidden'));
   document.querySelectorAll('[data-nav]').forEach((btn) => {
     btn.addEventListener('click', () => showScreen(btn.dataset.nav));
   });
+
+  // Timing is the dietitian's Libro-business-case stopwatch, not a client tool —
+  // it's deliberately kept out of the visible nav so a client can't corrupt its
+  // data. The dietitian reaches it via the #timing URL fragment (bookmark it).
+  const gotoHash = () => { if (location.hash === '#timing') showScreen('timing'); };
+  window.addEventListener('hashchange', gotoHash);
+  gotoHash();
 
   // --- Confirm card -------------------------------------------------
   function openConfirmCard(food, { onLog }) {
