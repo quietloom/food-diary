@@ -25,9 +25,16 @@ function writeHeaders(XLSX, ws, headers, row) {
 }
 
 /** Builds a fresh workbook matching files/nutritics-food-diary-v2.xlsx's
- * schema. Only ever writes the manual-entry columns — never the template's
- * own formula columns (Library J/K, Log F/G) — same rule scan_to_diary.py
- * follows, so the same free-row-detection bug can't recur here either.
+ * schema. Writes the manual-entry columns, PLUS resolves the Daily Log's
+ * "Food name (auto)" / "Barcode (auto)" columns (F/G) to static values from
+ * the Library — because this is a FRESH sheet with no INDEX/MATCH formulas to
+ * auto-fill them, so leaving them blank would force the dietitian to cross-
+ * reference every code by hand. (scan_to_diary.py leaves F/G alone because it
+ * appends to a template copy whose formulas already fill them; the PWA has no
+ * such formulas, so it fills the values itself. Library J/K — Times used /
+ * Check — are still left blank; those are cross-row aggregates the template's
+ * own formulas own, and the How-to-use Progress panel already derives the
+ * search-saving count from the Library/Log row counts.)
  * Optional guideSheets ({ howToUse, lists }, from loadGuideSheets) carries
  * the template's "How to use" and "Lists" tabs through untouched. */
 export function buildWorkbook(XLSX, { foods, logEntries, guideSheets }) {
@@ -50,13 +57,19 @@ export function buildWorkbook(XLSX, { foods, logEntries, guideSheets }) {
     if (f.nameUnconfirmed) setCell(XLSX, lib, row, LIBRARY_NOTE_COL, 'NAME UNCONFIRMED — verify against packet');
   });
 
+  const foodByCode = Object.fromEntries(foods.map((f) => [f.code, f]));
   logEntries.forEach((e, i) => {
     const row = LOG_FIRST_DATA_ROW + i;
+    const food = foodByCode[e.foodCode];
     setCell(XLSX, log, row, 1, e.day);
     setCell(XLSX, log, row, 2, e.date);
     setCell(XLSX, log, row, 3, e.meal);
     setCell(XLSX, log, row, 4, e.time);
     setCell(XLSX, log, row, 5, e.foodCode);
+    if (food) {
+      setCell(XLSX, log, row, 6, food.name); // Food name (auto) — resolved from the Library by code
+      setCell(XLSX, log, row, 7, food.barcode); // Barcode (auto) — resolved from the Library by code
+    }
     setCell(XLSX, log, row, 8, e.quantity);
     setCell(XLSX, log, row, 9, e.unit);
     setCell(XLSX, log, row, 10, e.howMeasured);
