@@ -1,4 +1,4 @@
-const CACHE_NAME = 'food-diary-v17';
+const CACHE_NAME = 'food-diary-v18';
 const SHELL_FILES = [
   './',
   './index.html',
@@ -19,7 +19,17 @@ const SHELL_FILES = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_FILES)));
+  // {cache: 'reload'} bypasses the browser's own HTTP cache for each precache
+  // fetch. Without it, a client who visited within the last cache-control
+  // max-age (GitHub Pages: 600s) can bake a STALE file into this brand-new
+  // CACHE_NAME during install — reload/clear-data afterwards can't fix it,
+  // since the SW then serves cache-first from that wrong copy until the next
+  // version bump. Confirmed 2026-07-23: a fresh v17 install picked up
+  // pre-deploy CSS this way.
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(SHELL_FILES.map((url) => new Request(url, { cache: 'reload' })))),
+  );
   self.skipWaiting();
 });
 
