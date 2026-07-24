@@ -15,7 +15,7 @@
   --btn-bg: color-mix(in srgb, var(--surface) 30%, transparent);
   /* Opacity of the blurred cereal background (body::before). Single knob —
      turn it up for a stronger photo, down to fade it out. */
-  --bg-photo-opacity: .48;
+  --bg-photo-opacity: .60;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -27,7 +27,7 @@
     --accent-text: #0d201c;
     --shadow: 0 2px 8px rgba(0,0,0,.4);
     /* A bright breakfast photo fights a dark theme harder — keep it fainter. */
-    --bg-photo-opacity: .40;
+    --bg-photo-opacity: .50;
   }
 }
 
@@ -92,7 +92,10 @@ table.list th { color: var(--text-muted); font-weight: 600; }
    give the buttons something to rest on when the background was flat — the
    cereal photo now does that job, so the box is gone to avoid competing with
    it. */
-#scan-idle { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 60vh; margin: 12px; padding: 24px 16px; }
+/* Buttons sit at the TOP of the scan area, not centred: centred they landed
+   right on the background bowl's rim. Top-aligned they clear it entirely —
+   buttons under the header, bowl owning the middle, nav strip at the bottom. */
+#scan-idle { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 12px; min-height: 60vh; margin: 12px; padding: 24px 16px; }
 /* Primary action — same translucent family as the rest (solid mint fought the
    background), kept primary by SIZE: larger text + padding, not a loud fill.
    box-sizing + shared width so it and the gallery button align to one column. */
