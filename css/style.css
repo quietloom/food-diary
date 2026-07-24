@@ -51,7 +51,18 @@ body::before {
   transform: translateX(-50%);
   z-index: -1;
   pointer-events: none;
-  background: url("../assets/cereal-bg.jpg") center / cover no-repeat;
+  /* Sized by WIDTH (100% auto), not `cover`. With `cover` the image scaled to
+     fill the viewport HEIGHT, so on a tall desktop window the strip's aspect
+     far exceeded the image's and it cropped the width hard — the bowl visibly
+     zoomed as the window grew. Sizing by width makes the bowl's size depend
+     only on the 480px column, identical at every window height. The asset
+     feathers into #d2a695 at top and bottom, so background-color fills any
+     leftover height seamlessly. */
+  background-color: #d2a695;
+  background-image: url("../assets/cereal-bg.jpg");
+  background-size: 100% auto;
+  background-position: center center;
+  background-repeat: no-repeat;
   filter: blur(0);
   opacity: var(--bg-photo-opacity);
 }
